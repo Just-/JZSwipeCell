@@ -42,6 +42,8 @@ static CGFloat const kMaxBounceAmount = 8;
 
 @implementation JZSwipeCell
 
+@dynamic contentView;
+
 - (id)init
 {
 	self = [super init];
@@ -113,6 +115,26 @@ static CGFloat const kMaxBounceAmount = 8;
 	[self runSwipeAnimationForType:type];
 }
 
+- (void)restoreCell:(BOOL)animated delay:(CGFloat)delay
+{
+	CGFloat newViewCenterX = self.dragStart;
+	CGFloat iconAlpha = 0;
+    
+    newViewCenterX = self.dragStart;
+    
+	[UIView animateWithDuration:0.12
+                          delay:delay
+						options:UIViewAnimationOptionCurveLinear
+					 animations:^{
+						 self.contentView.center = CGPointMake(newViewCenterX, self.contentView.center.y);
+						 self.icon.alpha = iconAlpha;
+					 } completion:^(BOOL finished) {
+						 if ([self.delegate respondsToSelector:@selector(swipeCell:didRestoreSwipeAmimated:)])
+							 [self.delegate swipeCell:self didRestoreSwipeAmimated:animated];
+						 self.dragStart = CGFLOAT_MIN;
+					 }];
+}
+
 #pragma mark - Private methods
 
 - (void)configureCell
@@ -125,6 +147,7 @@ static CGFloat const kMaxBounceAmount = 8;
 	if (!self.icon)
 	{
 		self.icon = [[UIImageView alloc] initWithFrame:CGRectMake(0, 0, kDefaultIconSize, kDefaultIconSize)];
+        [self.icon setTintColor:[UIColor whiteColor]];
 		[self addSubview:self.icon];
 	}
 	
@@ -138,7 +161,7 @@ static CGFloat const kMaxBounceAmount = 8;
 	self.gesture.delegate = self;
 	[self.contentView addGestureRecognizer:self.gesture];
 	
-	self.shortSwipeLength = self.contentView.frame.size.width * 0.66;
+	self.shortSwipeLength = self.contentView.frame.size.width * 0.40;
 	
 	self.colorSet = [self defaultColorSet];
 	self.defaultBackgroundColor = [UIColor lightGrayColor];
@@ -148,6 +171,8 @@ static CGFloat const kMaxBounceAmount = 8;
 		self.backgroundView = [[UIView alloc] init];
 		self.backgroundView.backgroundColor = self.defaultBackgroundColor;
 	}
+    
+    [self bringSubviewToFront:self.contentView];
 }
 
 - (SwipeCellColorSet*)defaultColorSet
@@ -161,6 +186,10 @@ static CGFloat const kMaxBounceAmount = 8;
 - (void)gestureHappened:(UIPanGestureRecognizer *)sender
 {
 	CGPoint translatedPoint = [sender translationInView:self];
+    
+    if (translatedPoint.x > 0 && !self.allowSwipeRight) return;
+    if (translatedPoint.x < 0 && !self.allowSwipeLeft) return;
+    
 	switch (sender.state)
 	{
 		case UIGestureRecognizerStatePossible:
@@ -330,7 +359,13 @@ static CGFloat const kMaxBounceAmount = 8;
 	if ([gestureRecognizer isKindOfClass:[UILongPressGestureRecognizer class]])
 		return YES;
 	
+    CGPoint location = [(UIPanGestureRecognizer*)gestureRecognizer locationInView:self];
 	CGPoint translation = [(UIPanGestureRecognizer*)gestureRecognizer translationInView:self];
+    int beginX = location.x - translation.x;
+    if (beginX <= 30) {
+        return NO; // dead zone reserved for swipe to back
+    }
+    
     return fabs(translation.y) < fabs(translation.x);
 }
 
@@ -350,6 +385,17 @@ static CGFloat const kMaxBounceAmount = 8;
 {
 	return type == JZSwipeTypeShortLeft || type == JZSwipeTypeLongLeft;
 }
+
+- (BOOL)allowSwipeRight
+{
+    return (self.imageSet.longRightSwipeImage || self.imageSet.shortRightSwipeImage);
+}
+
+- (BOOL)allowSwipeLeft
+{
+    return (self.imageSet.longLeftSwipeImage || self.imageSet.shortLeftSwipeImage);
+}
+
 
 @end
 
