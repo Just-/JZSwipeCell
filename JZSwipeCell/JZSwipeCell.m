@@ -276,17 +276,14 @@ static CGFloat const kMaxBounceAmount = 8;
 			}
 			
 			break;
+      
+    case UIGestureRecognizerStateCancelled:
+    case UIGestureRecognizerStateFailed:
 		case UIGestureRecognizerStateEnded:
 			if (self.currentSwipe != JZSwipeTypeNone)
 				[self runSwipeAnimationForType:self.currentSwipe];
 			else
 				[self runBounceAnimationFromPoint:translatedPoint];
-			break;
-		case UIGestureRecognizerStateCancelled:
-			
-			break;
-		case UIGestureRecognizerStateFailed:
-			
 			break;
 	}
 }
